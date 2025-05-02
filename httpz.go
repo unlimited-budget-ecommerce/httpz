@@ -37,7 +37,7 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 	client.BaseURL = baseURL
 	client.
 		OnBeforeRequest(nil). // TODO: otel req
-		OnAfterResponse(nil). // TODO: log req, res
+		OnAfterResponse(logReqRes(cfg.logger)).
 		OnAfterResponse(nil). // TODO: otel res
 		OnError(nil)          // TODO: otel err
 
