@@ -12,13 +12,13 @@ type logger struct{ slog.Logger }
 var _ resty.Logger = (*logger)(nil)
 
 func (l logger) Debugf(format string, v ...any) {
-	l.Debug(fmt.Sprintf(format, v...))
+	l.Debug("[HTTPZ] " + fmt.Sprintf(format, v...))
 }
 
 func (l logger) Warnf(format string, v ...any) {
-	l.Warn(fmt.Sprintf(format, v...))
+	l.Warn("[HTTPZ] " + fmt.Sprintf(format, v...))
 }
 
 func (l logger) Errorf(format string, v ...any) {
-	l.Error(fmt.Sprintf(format, v...))
+	l.Error("[HTTPZ] " + fmt.Sprintf(format, v...))
 }
