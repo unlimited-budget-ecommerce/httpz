@@ -34,19 +34,13 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 		Transport: cfg.transport,
 	})
 	client.BaseURL = baseURL
-	client.SetLogger(logger{cfg.logger})
-
-	if cfg.logMWEnabled {
-		client.
-			OnBeforeRequest(logRequest(cfg.logger)).
-			OnAfterResponse(logResponse(cfg.logger))
-	}
-	if cfg.otelMWEnabled {
-		client.
-			OnBeforeRequest(nil). // TODO: otel req
-			OnAfterResponse(nil). // TODO: otel res
-			OnError(nil)          // TODO: otel err
-	}
+	client.
+		SetLogger(logger{cfg.logger}).
+		OnBeforeRequest(nil). // TODO: otel req
+		OnBeforeRequest(logRequest(&cfg)).
+		OnAfterResponse(logResponse(&cfg)).
+		OnAfterResponse(nil). // TODO: otel res
+		OnError(nil)          // TODO: otel err
 
 	return &httpClient{
 		Client: *client,

@@ -6,9 +6,13 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-func logRequest(l *slog.Logger) resty.RequestMiddleware {
+func logRequest(cfg *config) resty.RequestMiddleware {
 	return func(_ *resty.Client, req *resty.Request) error {
-		l.Info("[HTTPZ][OUTGOING REQUEST]",
+		if !cfg.logMWEnabled {
+			return nil
+		}
+
+		cfg.logger.Info("[HTTPZ][OUTGOING REQUEST]",
 			slog.String("url", req.URL),
 			slog.String("method", req.Method),
 			slog.Any("request_header", req.Header),
@@ -19,9 +23,13 @@ func logRequest(l *slog.Logger) resty.RequestMiddleware {
 	}
 }
 
-func logResponse(l *slog.Logger) resty.ResponseMiddleware {
+func logResponse(cfg *config) resty.ResponseMiddleware {
 	return func(_ *resty.Client, res *resty.Response) error {
-		logger := l.With(
+		if !cfg.logMWEnabled {
+			return nil
+		}
+
+		logger := cfg.logger.With(
 			slog.String("url", res.Request.URL),
 			slog.String("method", res.Request.Method),
 			slog.Int64("total_time_ms", res.Time().Milliseconds()),
