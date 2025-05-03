@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/go-resty/resty/v2"
+	"go.opentelemetry.io/otel/semconv/v1.30.0"
 )
 
 func logRequest(cfg *config) resty.RequestMiddleware {
@@ -13,10 +14,10 @@ func logRequest(cfg *config) resty.RequestMiddleware {
 		}
 
 		cfg.logger.Info("[HTTPZ][OUTGOING REQUEST]",
-			slog.String("url", req.URL),
-			slog.String("method", req.Method),
-			slog.Any("request_header", req.Header),
-			slog.Any("request_body", req.Body),
+			slog.String(string(semconv.URLFullKey), req.URL),
+			slog.String(string(semconv.HTTPRequestMethodKey), req.Method),
+			slog.Any("http.request.header", req.Header),
+			slog.Any("http.request.body", req.Body),
 		)
 
 		return nil
@@ -30,12 +31,12 @@ func logResponse(cfg *config) resty.ResponseMiddleware {
 		}
 
 		logger := cfg.logger.With(
-			slog.String("url", res.Request.URL),
-			slog.String("method", res.Request.Method),
-			slog.Int64("total_time_ms", res.Time().Milliseconds()),
-			slog.Int("status_code", res.StatusCode()),
-			slog.Any("response_header", res.Header),
-			slog.Any("response_body", res.Body()),
+			slog.String(string(semconv.URLFullKey), res.Request.URL),
+			slog.String(string(semconv.HTTPRequestMethodKey), res.Request.Method),
+			slog.Int64(semconv.HTTPClientRequestDurationName, res.Time().Milliseconds()),
+			slog.Int(string(semconv.HTTPResponseStatusCodeKey), res.StatusCode()),
+			slog.Any("http.response.header", res.Header),
+			slog.Any("http.response.body", res.Body()),
 		)
 
 		if res.IsError() {
