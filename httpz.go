@@ -11,9 +11,8 @@ import (
 
 type httpClient struct {
 	resty.Client
-	name   string
-	paths  map[string]path
-	logger logger
+	name  string
+	paths map[string]path
 }
 
 func New(clientName, baseURL string, opts ...option) *httpClient {
@@ -35,16 +34,24 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 		Transport: cfg.transport,
 	})
 	client.BaseURL = baseURL
-	client.
-		OnBeforeRequest(nil). // TODO: otel req
-		OnAfterResponse(logReqRes(cfg.logger)).
-		OnAfterResponse(nil). // TODO: otel res
-		OnError(nil)          // TODO: otel err
+	client.SetLogger(logger{cfg.logger})
+
+	if cfg.logMWEnabled {
+		client.
+			OnBeforeRequest(logRequest(cfg.logger)).
+			OnAfterResponse(logResponse(cfg.logger))
+	}
+	if cfg.otelMWEnabled {
+		client.
+			OnBeforeRequest(nil). // TODO: otel req
+			OnAfterResponse(nil). // TODO: otel res
+			OnError(nil)          // TODO: otel err
+	}
 
 	return &httpClient{
 		Client: *client,
 		name:   clientName,
-		logger: logger{*cfg.logger},
+		paths:  cfg.paths,
 	}
 }
 
@@ -71,7 +78,6 @@ func Do[T any](ctx context.Context, client *httpClient, req *Request) (Response[
 		SetBody(req.Body).
 		SetQueryParams(req.QueryParams).
 		SetPathParams(req.PathParams).
-		SetLogger(client.logger).
 		SetResult(result)
 	if req.UserInfo != nil {
 		request.SetBasicAuth(req.UserInfo.Username, req.UserInfo.Password)

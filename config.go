@@ -7,9 +7,11 @@ import (
 
 type (
 	config struct {
-		transport http.RoundTripper
-		paths     map[string]path
-		logger    *slog.Logger
+		transport     http.RoundTripper
+		paths         map[string]path
+		logger        *slog.Logger
+		logMWEnabled  bool
+		otelMWEnabled bool
 	}
 	path struct {
 		path string
@@ -39,5 +41,17 @@ func WithLogger(l *slog.Logger) option {
 		if l != nil {
 			cfg.logger = l
 		}
+	})
+}
+
+func WithLogMWEnabled(enabled bool) option {
+	return option(func(cfg *config) {
+		cfg.logMWEnabled = enabled
+	})
+}
+
+func WithOtelMWEnabled(enabled bool) option {
+	return option(func(cfg *config) {
+		cfg.otelMWEnabled = enabled
 	})
 }

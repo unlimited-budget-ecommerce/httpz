@@ -7,7 +7,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-type logger struct{ slog.Logger }
+type logger struct{ *slog.Logger }
 
 var _ resty.Logger = (*logger)(nil)
 
