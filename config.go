@@ -8,13 +8,13 @@ import (
 type (
 	config struct {
 		transport     http.RoundTripper
-		paths         map[string]path
+		paths         map[string]Path
 		logger        *slog.Logger
 		logMWEnabled  bool
 		otelMWEnabled bool
 	}
-	path struct {
-		path string
+	Path struct {
+		Path string
 	}
 )
 
@@ -28,7 +28,7 @@ func WithTransport(t *http.Transport) option {
 	})
 }
 
-func WithPaths(p map[string]path) option {
+func WithPaths(p map[string]Path) option {
 	return option(func(cfg *config) {
 		if p != nil {
 			cfg.paths = p

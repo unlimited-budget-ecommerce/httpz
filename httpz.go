@@ -12,7 +12,7 @@ import (
 type httpClient struct {
 	resty.Client
 	name  string
-	paths map[string]path
+	paths map[string]Path
 }
 
 func New(clientName, baseURL string, opts ...option) *httpClient {
@@ -24,7 +24,7 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 		cfg.transport = http.DefaultTransport
 	}
 	if cfg.paths == nil {
-		cfg.paths = make(map[string]path)
+		cfg.paths = make(map[string]Path)
 	}
 	if cfg.logger == nil {
 		cfg.logger = slog.Default()
@@ -62,6 +62,11 @@ type (
 )
 
 func Do[T any](ctx context.Context, client *httpClient, req *Request) (Response[T], error) {
+	path, ok := client.paths[req.PathName]
+	if !ok {
+		return Response[T]{}, fmt.Errorf("path %q not found", req.PathName)
+	}
+
 	result := new(T)
 	request := client.
 		R().
@@ -78,7 +83,7 @@ func Do[T any](ctx context.Context, client *httpClient, req *Request) (Response[
 	}
 	request.Header.Set("User-Agent", client.name)
 
-	res, err := request.Execute(req.Method, client.paths[req.PathName].path)
+	res, err := request.Execute(req.Method, path.Path)
 	if err != nil {
 		return Response[T]{}, fmt.Errorf("error executing request: %w", err)
 	}
