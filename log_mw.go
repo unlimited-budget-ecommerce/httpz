@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/go-resty/resty/v2"
-	"go.opentelemetry.io/otel/semconv/v1.30.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 )
 
 func logRequest(cfg *config) resty.RequestMiddleware {
