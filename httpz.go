@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-resty/resty/v2"
+	"go.opentelemetry.io/otel"
 )
 
 type httpClient struct {
@@ -28,6 +29,12 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 	}
 	if cfg.logger == nil {
 		cfg.logger = slog.Default()
+	}
+	if cfg.tracer == nil {
+		cfg.tracer = otel.GetTracerProvider()
+	}
+	if cfg.propagator == nil {
+		cfg.propagator = otel.GetTextMapPropagator()
 	}
 
 	client := resty.NewWithClient(&http.Client{

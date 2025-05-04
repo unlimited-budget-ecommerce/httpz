@@ -3,6 +3,9 @@ package httpz
 import (
 	"log/slog"
 	"net/http"
+
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type (
@@ -11,6 +14,8 @@ type (
 		paths         map[string]Path
 		logger        *slog.Logger
 		logMWEnabled  bool
+		tracer        trace.TracerProvider
+		propagator    propagation.TextMapPropagator
 		otelMWEnabled bool
 	}
 	Path struct {
@@ -47,6 +52,22 @@ func WithLogger(l *slog.Logger) option {
 func WithLogMWEnabled(enabled bool) option {
 	return option(func(cfg *config) {
 		cfg.logMWEnabled = enabled
+	})
+}
+
+func WithTracer(t trace.TracerProvider) option {
+	return option(func(cfg *config) {
+		if t != nil {
+			cfg.tracer = t
+		}
+	})
+}
+
+func WithPropagator(p propagation.TextMapPropagator) option {
+	return option(func(cfg *config) {
+		if p != nil {
+			cfg.propagator = p
+		}
 	})
 }
 
