@@ -43,11 +43,11 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 	client.BaseURL = baseURL
 	client.
 		SetLogger(logger{cfg.logger}).
-		OnBeforeRequest(nil). // TODO: otel req
+		OnBeforeRequest(startTrace(&cfg)).
 		OnBeforeRequest(logRequest(&cfg)).
 		OnAfterResponse(logResponse(&cfg)).
-		OnAfterResponse(nil). // TODO: otel res
-		OnError(nil)          // TODO: otel err
+		OnAfterResponse(endTraceSuccess(&cfg)).
+		OnError(endTraceError(&cfg))
 
 	return &httpClient{
 		Client: *client,
