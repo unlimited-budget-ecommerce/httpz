@@ -88,7 +88,7 @@ func Do[T any](ctx context.Context, client *httpClient, req *Request) (Response[
 	if req.UserInfo != nil {
 		request.SetBasicAuth(req.UserInfo.Username, req.UserInfo.Password)
 	}
-	request.Header.Set("User-Agent", client.name)
+	request.Header.Set(http.CanonicalHeaderKey("User-Agent"), client.name)
 
 	res, err := request.Execute(req.Method, path.Path)
 	if err != nil {
