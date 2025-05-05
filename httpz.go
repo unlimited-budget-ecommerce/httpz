@@ -74,6 +74,14 @@ func Do[T any](ctx context.Context, client *httpClient, req *Request) (Response[
 		return Response[T]{}, fmt.Errorf("path %q not found", req.PathName)
 	}
 
+	if req.Header == nil {
+		req.Header = make(http.Header)
+	}
+	if req.Header.Get(http.CanonicalHeaderKey("Content-Type")) == "" {
+		req.Header.Set(http.CanonicalHeaderKey("Content-Type"), "application/json")
+	}
+	req.Header.Set(http.CanonicalHeaderKey("User-Agent"), client.name)
+
 	result := new(T)
 	request := client.
 		R().
@@ -88,7 +96,6 @@ func Do[T any](ctx context.Context, client *httpClient, req *Request) (Response[
 	if req.UserInfo != nil {
 		request.SetBasicAuth(req.UserInfo.Username, req.UserInfo.Password)
 	}
-	request.Header.Set(http.CanonicalHeaderKey("User-Agent"), client.name)
 
 	res, err := request.Execute(req.Method, path.Path)
 	if err != nil {
