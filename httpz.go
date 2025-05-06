@@ -58,7 +58,9 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 
 type (
 	Request struct {
-		PathName    string
+		// PathName is the name registered with [httpz.WithPaths]
+		PathName string
+		// use this field instead of [resty.Request.QueryParam]
 		QueryParams map[string]string
 		resty.Request
 	}
@@ -68,6 +70,11 @@ type (
 	}
 )
 
+// Do executes an HTTP request and returns a typed response *T and [*resty.Response].
+//
+// It looks up the request path by name from the client's registered paths.
+// It also sets default headers including "Content-Type: application/json" and "User-Agent"
+// based on the client name.
 func Do[T any](ctx context.Context, client *httpClient, req *Request) (Response[T], error) {
 	path, ok := client.paths[req.PathName]
 	if !ok {
