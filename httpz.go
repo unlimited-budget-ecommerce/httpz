@@ -65,8 +65,8 @@ type (
 		resty.Request
 	}
 	Response[T any] struct {
-		Result *T
-		*resty.Response
+		Result T
+		resty.Response
 	}
 )
 
@@ -75,10 +75,10 @@ type (
 // It looks up the request path by name from the client's registered paths.
 // It also sets default headers including "Content-Type: application/json" and "User-Agent"
 // based on the client name.
-func Do[T any](ctx context.Context, client *httpClient, req *Request) (Response[T], error) {
+func Do[T any](ctx context.Context, client *httpClient, req *Request) (*Response[T], error) {
 	path, ok := client.paths[req.PathName]
 	if !ok {
-		return Response[T]{}, fmt.Errorf("path %q not found", req.PathName)
+		return nil, fmt.Errorf("path %q not found", req.PathName)
 	}
 
 	if req.Header == nil {
@@ -106,8 +106,8 @@ func Do[T any](ctx context.Context, client *httpClient, req *Request) (Response[
 
 	res, err := request.Execute(req.Method, path.Path)
 	if err != nil {
-		return Response[T]{}, fmt.Errorf("error executing request: %w", err)
+		return nil, fmt.Errorf("error executing request: %w", err)
 	}
 
-	return Response[T]{Result: result, Response: res}, nil
+	return &Response[T]{Result: *result, Response: *res}, nil
 }
