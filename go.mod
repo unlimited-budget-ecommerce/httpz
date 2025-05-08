@@ -5,7 +5,7 @@ go 1.24.2
 require (
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/stretchr/testify v1.10.0
-	github.com/unlimited-budget-ecommerce/logz v0.3.0
+	github.com/unlimited-budget-ecommerce/logz v0.4.0
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 )

@@ -39,7 +39,7 @@ func startTrace(cfg *config) resty.RequestMiddleware {
 			trace.WithTimestamp(time.Now()),
 		)
 
-		ctx = logz.AddContexts(
+		ctx = logz.SetContextAttrs(
 			ctx,
 			slog.String(logz.SpanKey, span.SpanContext().SpanID().String()),
 			slog.String(logz.ParentSpanKey, parentSpanCtx.SpanID().String()),
