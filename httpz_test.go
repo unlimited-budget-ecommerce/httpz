@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,7 +57,7 @@ func TestDoGetRequest(t *testing.T) {
 		},
 	})
 	client := New("test-client", server.URL, WithPaths(map[string]Path{
-		"testGet": {Path: "/test/get/1"},
+		"testGet": {Path: "/test/get/{id}"},
 	}))
 	req := Request{
 		PathName: "testGet",
@@ -65,13 +66,16 @@ func TestDoGetRequest(t *testing.T) {
 		},
 	}
 	req.Method = http.MethodGet
+	req.PathParams = map[string]string{
+		"id": "1",
+	}
 
 	res, err := Do[testGetRes](context.Background(), client, &req)
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode())
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-	assert.Equal(t, wantRes, *res.Result)
+	assert.Equal(t, wantRes, res.Result)
 }
 
 func TestDoPostRequest(t *testing.T) {
@@ -124,7 +128,7 @@ func TestDoPostRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, res.StatusCode())
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-	assert.Equal(t, wantRes, *res.Result)
+	assert.Equal(t, wantRes, res.Result)
 }
 
 func TestDoPathNotFound(t *testing.T) {
@@ -150,6 +154,7 @@ func TestDoBasicAuthRequest(t *testing.T) {
 		handlerFunc: func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "test-client", r.UserAgent())
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			assert.True(t, strings.HasPrefix(r.Header.Get("Authorization"), "Basic "))
 
 			user, pass, ok := r.BasicAuth()
 
@@ -177,7 +182,7 @@ func TestDoBasicAuthRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode())
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-	assert.Equal(t, wantRes, *res.Result)
+	assert.Equal(t, wantRes, res.Result)
 }
 
 func TestDoBearerTokenRequest(t *testing.T) {
@@ -214,7 +219,7 @@ func TestDoBearerTokenRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode())
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-	assert.Equal(t, wantRes, *res.Result)
+	assert.Equal(t, wantRes, res.Result)
 }
 
 func TestLogMiddleware(t *testing.T) {
@@ -262,7 +267,7 @@ func TestLogMiddleware(t *testing.T) {
 		WithLogMWEnabled(false),
 	)
 
-	t.Run("logging enabled", func(t *testing.T) {
+	t.Run("logging enabled success msg", func(t *testing.T) {
 		req := Request{PathName: "testLog"}
 		req.Method = http.MethodPost
 		req.Header = http.Header{"X-Test-Req": []string{"req-header-val"}}
@@ -273,7 +278,7 @@ func TestLogMiddleware(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, res.StatusCode())
 		assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-		assert.Equal(t, wantResBody, *res.Result)
+		assert.Equal(t, wantResBody, res.Result)
 
 		logs := b.String()
 		t.Log("captured logs:\n", logs)
@@ -283,14 +288,14 @@ func TestLogMiddleware(t *testing.T) {
 		assert.Contains(t, logs, `"url.full":"`+server.URL+`/test/log"`)
 		assert.Contains(t, logs, `"http.request.method":"POST"`)
 		assert.Contains(t, logs, `"X-Test-Req":["req-header-val"]`)
-		assert.Contains(t, logs, `"http.request.body":`) // TODO: update assertion value
+		assert.Contains(t, logs, `"http.request.body":{"input":"ping"}`)
 
 		// response log
 		assert.Contains(t, logs, "[HTTPZ][INCOMING RESPONSE] success")
 		assert.Contains(t, logs, `"http.client.request.duration":`)
 		assert.Contains(t, logs, `"http.response.status_code":200`)
 		assert.Contains(t, logs, `"X-Test-Resp":["resp-header-val"]`)
-		assert.Contains(t, logs, `"http.request.body":`) // TODO: update assertion value
+		assert.Contains(t, logs, `"http.response.body":{"output":"pong"}`)
 	})
 
 	t.Run("logging disabled", func(t *testing.T) {
@@ -305,7 +310,7 @@ func TestLogMiddleware(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, res.StatusCode())
 		assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-		assert.Equal(t, wantResBody, *res.Result)
+		assert.Equal(t, wantResBody, res.Result)
 
 		logs := b.String()
 
