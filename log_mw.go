@@ -1,10 +1,13 @@
 package httpz
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/unlimited-budget-ecommerce/logz"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 )
 
@@ -17,17 +20,21 @@ func logRequest(cfg *config) resty.RequestMiddleware {
 		logger := cfg.logger.With(
 			slog.String(string(semconv.URLFullKey), req.URL),
 			slog.String(string(semconv.HTTPRequestMethodKey), req.Method),
-			slog.Any("http.request.header", req.Header), // TODO: wraps with mask map
+			slog.Any("http.request.header", logz.MaskHttpHeader(req.Header)),
 		)
 
+		ctx := req.Context()
 		body, err := json.Marshal(req.Body)
 		if err != nil {
-			logger.Error("[HTTPZ][OUTGOING REQUEST] error marshalling request body: " + err.Error())
+			logger.ErrorContext(
+				ctx,
+				"[HTTPZ][OUTGOING REQUEST] error marshalling request body: "+err.Error(),
+			)
 			return err
 		}
 
-		logger.Info("[HTTPZ][OUTGOING REQUEST] success",
-			slog.Any("http.request.body", body), // TODO: wraps with mask []byte
+		logger.InfoContext(ctx, "[HTTPZ][OUTGOING REQUEST] success",
+			slog.Any("http.request.body", maskBytes(ctx, body, "request body")),
 		)
 
 		return nil
@@ -40,21 +47,32 @@ func logResponse(cfg *config) resty.ResponseMiddleware {
 			return nil
 		}
 
+		ctx := res.Request.Context()
 		logger := cfg.logger.With(
 			slog.String(string(semconv.URLFullKey), res.Request.URL),
 			slog.String(string(semconv.HTTPRequestMethodKey), res.Request.Method),
 			slog.Int64(semconv.HTTPClientRequestDurationName, res.Time().Milliseconds()),
 			slog.Int(string(semconv.HTTPResponseStatusCodeKey), res.StatusCode()),
-			slog.Any("http.response.header", res.Header()), // TODO: wraps with mask map
-			slog.Any("http.response.body", res.Body()),     // TODO: wraps with mask []byte
+			slog.Any("http.response.header", logz.MaskHttpHeader(res.Header())),
+			slog.Any("http.response.body", maskBytes(ctx, res.Body(), "response body")),
 		)
 
 		if res.IsError() {
-			logger.Error("[HTTPZ][INCOMING RESPONSE] error")
+			logger.ErrorContext(ctx, "[HTTPZ][INCOMING RESPONSE] error")
 		} else {
-			logger.Info("[HTTPZ][INCOMING RESPONSE] success")
+			logger.InfoContext(ctx, "[HTTPZ][INCOMING RESPONSE] success")
 		}
 
 		return nil
 	}
+}
+
+func maskBytes(ctx context.Context, b []byte, bodyType string) map[string]any {
+	m := make(map[string]any)
+	err := json.Unmarshal(b, &m)
+	if err != nil {
+		slog.ErrorContext(ctx, fmt.Sprintf("[HTTPZ] error unmarshalling %s: %s", bodyType, err.Error()))
+		return m
+	}
+	return logz.MaskMap(m)
 }
