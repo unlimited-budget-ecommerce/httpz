@@ -17,7 +17,7 @@ go get github.com/unlimited-budget-ecommerce/httpz
 
 ## Usage
 
-Initialize httpz
+### Initializing httpz
 
 ```go
 // paths should comes from config.yaml file
@@ -40,7 +40,7 @@ client := httpz.New(
 )
 ```
 
-Making a POST request
+### Making a POST request
 
 ```go
 // prepare request
@@ -51,10 +51,10 @@ req.Method = http.MethodPost
 req.Body = CreateUserReq{}
 
 // example function
-func (a *adapter) CreateUser(ctx context.Context, req *http.Request) (httpz.Response[CreateUserRes], error) {
+func (a *adapter) CreateUser(ctx context.Context, req *http.Request) (*httpz.Response[CreateUserRes], error) {
 	resp, err := httpz.Do[CreateUserRes](ctx, a.client, &req)
 	if err != nil {
-		return resp, fmt.Errorf("failed to create user: %w", err) // resp is an empty struct
+		return resp, fmt.Errorf("failed to create user: %w", err) // resp is nil
 	}
 
 	if resp.IsError() {
@@ -65,7 +65,7 @@ func (a *adapter) CreateUser(ctx context.Context, req *http.Request) (httpz.Resp
 }
 ```
 
-Making a GET request
+### Making a GET request
 
 ```go
 req := &httpz.Request{
