@@ -12,8 +12,9 @@ import (
 
 type httpClient struct {
 	resty.Client
-	name  string
-	paths map[string]Path
+	name    string
+	version string
+	paths   map[string]Path
 }
 
 func New(clientName, baseURL string, opts ...option) *httpClient {
@@ -50,9 +51,10 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 		OnError(endTraceError(&cfg))
 
 	return &httpClient{
-		Client: *client,
-		name:   clientName,
-		paths:  cfg.paths,
+		Client:  *client,
+		name:    clientName,
+		version: cfg.serviceVersion,
+		paths:   cfg.paths,
 	}
 }
 
@@ -84,10 +86,10 @@ func Do[T any](ctx context.Context, client *httpClient, req *Request) (*Response
 	if req.Header == nil {
 		req.Header = make(http.Header)
 	}
-	if req.Header.Get(http.CanonicalHeaderKey("Content-Type")) == "" {
-		req.Header.Set(http.CanonicalHeaderKey("Content-Type"), "application/json")
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
 	}
-	req.Header.Set(http.CanonicalHeaderKey("User-Agent"), client.name)
+	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", client.name, client.version))
 
 	result := new(T)
 	request := client.
