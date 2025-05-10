@@ -10,13 +10,14 @@ import (
 
 type (
 	config struct {
-		transport     http.RoundTripper
-		paths         map[string]Path
-		logger        *slog.Logger
-		logMWEnabled  bool
-		tracer        trace.TracerProvider
-		propagator    propagation.TextMapPropagator
-		otelMWEnabled bool
+		transport      http.RoundTripper
+		paths          map[string]Path
+		logger         *slog.Logger
+		logMWEnabled   bool
+		tracer         trace.TracerProvider
+		propagator     propagation.TextMapPropagator
+		otelMWEnabled  bool
+		serviceVersion string
 	}
 	Path struct {
 		Path string
@@ -74,5 +75,11 @@ func WithPropagator(p propagation.TextMapPropagator) option {
 func WithOtelMWEnabled(enabled bool) option {
 	return option(func(cfg *config) {
 		cfg.otelMWEnabled = enabled
+	})
+}
+
+func WithServiceVersion(version string) option {
+	return option(func(cfg *config) {
+		cfg.serviceVersion = version
 	})
 }

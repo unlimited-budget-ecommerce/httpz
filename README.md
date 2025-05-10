@@ -37,6 +37,7 @@ client := httpz.New(
 	httpz.WithTracer(),                         // default: [otel.GetTracerProvider]
 	httpz.WithPropagator(),                     // default: [otel.GetTextMapPropagator]
 	httpz.WithOtelMWEnabled(true),              // opentelemetry tracing, default: false
+	httpz.WithServiceVersion(""),               // default: ""
 )
 ```
 
