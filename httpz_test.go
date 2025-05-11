@@ -43,7 +43,7 @@ func TestDoGetRequest(t *testing.T) {
 		method: http.MethodGet,
 		path:   "/test/get/{id}",
 		handlerFunc: func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "test-client", r.UserAgent())
+			assert.Equal(t, "test-client/", r.UserAgent())
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			assert.Equal(t, "1", r.PathValue("id"))
 			assert.Equal(t, "bar", r.URL.Query().Get("foo"))
@@ -93,7 +93,7 @@ func TestDoPostRequest(t *testing.T) {
 		method: http.MethodPost,
 		path:   "/test/post",
 		handlerFunc: func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "test-client", r.UserAgent())
+			assert.Equal(t, "test-client/", r.UserAgent())
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 			body, err := io.ReadAll(r.Body)
@@ -152,7 +152,7 @@ func TestDoBasicAuthRequest(t *testing.T) {
 		method: http.MethodPost,
 		path:   "/test/auth/basic",
 		handlerFunc: func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "test-client", r.UserAgent())
+			assert.Equal(t, "test-client/", r.UserAgent())
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			assert.True(t, strings.HasPrefix(r.Header.Get("Authorization"), "Basic "))
 
@@ -195,7 +195,7 @@ func TestDoBearerTokenRequest(t *testing.T) {
 		method: http.MethodPost,
 		path:   "/test/auth/bearer",
 		handlerFunc: func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "test-client", r.UserAgent())
+			assert.Equal(t, "test-client/", r.UserAgent())
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			assert.Equal(t, "Bearer "+wantToken, r.Header.Get("Authorization"))
 
@@ -235,7 +235,7 @@ func TestLogMiddleware(t *testing.T) {
 		method: http.MethodPost,
 		path:   "/test/log",
 		handlerFunc: func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "test-client", r.UserAgent())
+			assert.Equal(t, "test-client/", r.UserAgent())
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 			var reqBody testLogReq
