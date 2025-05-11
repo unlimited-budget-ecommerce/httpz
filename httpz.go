@@ -10,14 +10,14 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-type httpClient struct {
+type Client struct {
 	resty.Client
 	name    string
 	version string
 	paths   map[string]Path
 }
 
-func New(clientName, baseURL string, opts ...option) *httpClient {
+func New(clientName, baseURL string, opts ...option) *Client {
 	cfg := config{}
 	for _, opt := range opts {
 		opt(&cfg)
@@ -38,11 +38,11 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 		cfg.propagator = otel.GetTextMapPropagator()
 	}
 
-	client := resty.NewWithClient(&http.Client{
+	restyClient := resty.NewWithClient(&http.Client{
 		Transport: cfg.transport,
 	})
-	client.BaseURL = baseURL
-	client.
+	restyClient.BaseURL = baseURL
+	restyClient.
 		SetLogger(logger{cfg.logger}).
 		OnBeforeRequest(startTrace(&cfg)).
 		OnBeforeRequest(logRequest(&cfg)).
@@ -50,8 +50,8 @@ func New(clientName, baseURL string, opts ...option) *httpClient {
 		OnAfterResponse(endTraceSuccess(&cfg)).
 		OnError(endTraceError(&cfg))
 
-	return &httpClient{
-		Client:  *client,
+	return &Client{
+		Client:  *restyClient,
 		name:    clientName,
 		version: cfg.serviceVersion,
 		paths:   cfg.paths,
@@ -77,7 +77,7 @@ type (
 // It looks up the request path by name from the client's registered paths.
 // It also sets default headers including "Content-Type: application/json" and "User-Agent"
 // based on the client name.
-func Do[T any](ctx context.Context, client *httpClient, req *Request) (*Response[T], error) {
+func Do[T any](ctx context.Context, client *Client, req *Request) (*Response[T], error) {
 	path, ok := client.paths[req.PathName]
 	if !ok {
 		return nil, fmt.Errorf("path %q not found", req.PathName)
