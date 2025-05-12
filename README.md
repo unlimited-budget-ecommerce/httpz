@@ -22,16 +22,16 @@ go get github.com/unlimited-budget-ecommerce/httpz
 ```go
 // paths should comes from config.yaml file
 // this is just an example.
-paths := map[string]httpz.Path{
-	"createUser": {Path: "/users"},
-	"getUser":    {Path: "/users/{id}"},
+paths := map[string]string{
+	"createUser": "/users",
+	"getUser":    "/users/{id}",
 }
 
 client := httpz.New(
 	"service-name",                             // set to "User-Agent"
 	"https://api.example.com",                  // base url
 	httpz.WithTransport(http.DefaultTransport), // default: [http.DefaultTransport]
-	httpz.WithPaths(paths),                     // default: map[string]Path{}
+	httpz.WithPaths(paths),                     // default: map[string]string{}
 	httpz.WithLogger(slog.Default()),           // default: [slog.Default]
 	httpz.WithLogMWEnabled(true),               // request/response logging, default: false
 	httpz.WithTracer(),                         // default: [otel.GetTracerProvider]
