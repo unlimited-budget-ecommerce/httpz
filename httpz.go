@@ -14,7 +14,7 @@ type Client struct {
 	resty.Client
 	name    string
 	version string
-	paths   map[string]Path
+	paths   map[string]string
 }
 
 func New(clientName, baseURL string, opts ...option) *Client {
@@ -26,7 +26,7 @@ func New(clientName, baseURL string, opts ...option) *Client {
 		cfg.transport = http.DefaultTransport
 	}
 	if cfg.paths == nil {
-		cfg.paths = make(map[string]Path)
+		cfg.paths = make(map[string]string)
 	}
 	if cfg.logger == nil {
 		cfg.logger = slog.Default()
@@ -106,7 +106,7 @@ func Do[T any](ctx context.Context, client *Client, req *Request) (*Response[T],
 		request.SetBasicAuth(req.UserInfo.Username, req.UserInfo.Password)
 	}
 
-	res, err := request.Execute(req.Method, path.Path)
+	res, err := request.Execute(req.Method, path)
 	if err != nil {
 		return nil, fmt.Errorf("error executing request: %w", err)
 	}

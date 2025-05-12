@@ -56,8 +56,8 @@ func TestDoGetRequest(t *testing.T) {
 			assert.NoError(t, err)
 		},
 	})
-	client := New("test-client", server.URL, WithPaths(map[string]Path{
-		"testGet": {Path: "/test/get/{id}"},
+	client := New("test-client", server.URL, WithPaths(map[string]string{
+		"testGet": "/test/get/{id}",
 	}))
 	req := Request{
 		PathName: "testGet",
@@ -116,8 +116,8 @@ func TestDoPostRequest(t *testing.T) {
 			assert.NoError(t, err)
 		},
 	})
-	client := New("test-client", server.URL, WithPaths(map[string]Path{
-		"testPost": {Path: "/test/post"},
+	client := New("test-client", server.URL, WithPaths(map[string]string{
+		"testPost": "/test/post",
 	}))
 	req := Request{PathName: "testPost"}
 	req.Method = http.MethodPost
@@ -170,8 +170,8 @@ func TestDoBasicAuthRequest(t *testing.T) {
 			assert.NoError(t, err)
 		},
 	})
-	client := New("test-client", server.URL, WithPaths(map[string]Path{
-		"testBasicAuth": {Path: "/test/auth/basic"},
+	client := New("test-client", server.URL, WithPaths(map[string]string{
+		"testBasicAuth": "/test/auth/basic",
 	}))
 	req := Request{PathName: "testBasicAuth"}
 	req.Method = http.MethodPost
@@ -207,8 +207,8 @@ func TestDoBearerTokenRequest(t *testing.T) {
 			assert.NoError(t, err)
 		},
 	})
-	client := New("test-client", server.URL, WithPaths(map[string]Path{
-		"testBearerAuth": {Path: "/test/auth/bearer"},
+	client := New("test-client", server.URL, WithPaths(map[string]string{
+		"testBearerAuth": "/test/auth/bearer",
 	}))
 	req := Request{PathName: "testBearerAuth"}
 	req.Method = http.MethodPost
@@ -257,12 +257,12 @@ func TestLogMiddleware(t *testing.T) {
 	b := &bytes.Buffer{}
 	logger := slog.New(slog.NewJSONHandler(b, nil))
 	clientWithLog := New("test-client", server.URL,
-		WithPaths(map[string]Path{"testLog": {Path: "/test/log"}}),
+		WithPaths(map[string]string{"testLog": "/test/log"}),
 		WithLogger(logger),
 		WithLogMWEnabled(true),
 	)
 	clientWithoutLog := New("test-client", server.URL,
-		WithPaths(map[string]Path{"testLog": {Path: "/test/log"}}),
+		WithPaths(map[string]string{"testLog": "/test/log"}),
 		WithLogger(logger),
 		WithLogMWEnabled(false),
 	)

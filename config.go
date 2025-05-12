@@ -11,16 +11,13 @@ import (
 type (
 	config struct {
 		transport      http.RoundTripper
-		paths          map[string]Path
+		paths          map[string]string
 		logger         *slog.Logger
 		logMWEnabled   bool
 		tracer         trace.TracerProvider
 		propagator     propagation.TextMapPropagator
 		otelMWEnabled  bool
 		serviceVersion string
-	}
-	Path struct {
-		Path string
 	}
 )
 
@@ -34,7 +31,7 @@ func WithTransport(t *http.Transport) option {
 	})
 }
 
-func WithPaths(p map[string]Path) option {
+func WithPaths(p map[string]string) option {
 	return option(func(cfg *config) {
 		if p != nil {
 			cfg.paths = p
