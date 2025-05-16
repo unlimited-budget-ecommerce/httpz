@@ -2,11 +2,11 @@ package httpz
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
 	"github.com/unlimited-budget-ecommerce/logz"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 )
