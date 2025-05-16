@@ -56,7 +56,7 @@ func TestDoGetRequest(t *testing.T) {
 			assert.NoError(t, err)
 		},
 	})
-	client := New("test-client", server.URL, WithPaths(map[string]string{
+	client := NewClient("test-client", server.URL, WithPaths(map[string]string{
 		"testGet": "/test/get/{id}",
 	}))
 	req := Request{
@@ -95,6 +95,7 @@ func TestDoPostRequest(t *testing.T) {
 		handlerFunc: func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "test-client/", r.UserAgent())
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			assert.Equal(t, "test-header-val", r.Header.Get("x-test-header"))
 
 			body, err := io.ReadAll(r.Body)
 			defer r.Body.Close()
@@ -116,9 +117,14 @@ func TestDoPostRequest(t *testing.T) {
 			assert.NoError(t, err)
 		},
 	})
-	client := New("test-client", server.URL, WithPaths(map[string]string{
-		"testPost": "/test/post",
-	}))
+	client := NewClient("test-client", server.URL,
+		WithBaseHeaders(map[string]string{
+			"x-test-header": "test-header-val",
+		}),
+		WithPaths(map[string]string{
+			"testPost": "/test/post",
+		}),
+	)
 	req := Request{PathName: "testPost"}
 	req.Method = http.MethodPost
 	req.Body = wantReq
@@ -132,7 +138,7 @@ func TestDoPostRequest(t *testing.T) {
 }
 
 func TestDoPathNotFound(t *testing.T) {
-	client := New("", "")
+	client := NewClient("", "")
 	req := Request{PathName: "notExistPath"}
 
 	_, err := Do[any](req.Context(), client, &req)
@@ -170,7 +176,7 @@ func TestDoBasicAuthRequest(t *testing.T) {
 			assert.NoError(t, err)
 		},
 	})
-	client := New("test-client", server.URL, WithPaths(map[string]string{
+	client := NewClient("test-client", server.URL, WithPaths(map[string]string{
 		"testBasicAuth": "/test/auth/basic",
 	}))
 	req := Request{PathName: "testBasicAuth"}
@@ -207,7 +213,7 @@ func TestDoBearerTokenRequest(t *testing.T) {
 			assert.NoError(t, err)
 		},
 	})
-	client := New("test-client", server.URL, WithPaths(map[string]string{
+	client := NewClient("test-client", server.URL, WithPaths(map[string]string{
 		"testBearerAuth": "/test/auth/bearer",
 	}))
 	req := Request{PathName: "testBearerAuth"}
@@ -256,12 +262,12 @@ func TestLogMiddleware(t *testing.T) {
 	})
 	b := &bytes.Buffer{}
 	logger := slog.New(slog.NewJSONHandler(b, nil))
-	clientWithLog := New("test-client", server.URL,
+	clientWithLog := NewClient("test-client", server.URL,
 		WithPaths(map[string]string{"testLog": "/test/log"}),
 		WithLogger(logger),
 		WithLogMWEnabled(true),
 	)
-	clientWithoutLog := New("test-client", server.URL,
+	clientWithoutLog := NewClient("test-client", server.URL,
 		WithPaths(map[string]string{"testLog": "/test/log"}),
 		WithLogger(logger),
 		WithLogMWEnabled(false),

@@ -17,7 +17,7 @@ type Client struct {
 	paths   map[string]string
 }
 
-func New(clientName, baseURL string, opts ...option) *Client {
+func NewClient(clientName, baseURL string, opts ...option) *Client {
 	cfg := config{}
 	for _, opt := range opts {
 		opt(&cfg)
@@ -43,6 +43,7 @@ func New(clientName, baseURL string, opts ...option) *Client {
 	})
 	restyClient.BaseURL = baseURL
 	restyClient.
+		SetHeaders(cfg.baseHeaders).
 		SetLogger(logger{cfg.logger}).
 		OnBeforeRequest(startTrace(&cfg)).
 		OnBeforeRequest(logRequest(&cfg)).

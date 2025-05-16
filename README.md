@@ -27,17 +27,18 @@ paths := map[string]string{
 	"getUser":    "/users/{id}",
 }
 
-client := httpz.New(
+client := httpz.NewClient(
 	"service-name",                             // set to "User-Agent"
 	"https://api.example.com",                  // base url
-	httpz.WithTransport(http.DefaultTransport), // default: [http.DefaultTransport]
+	httpz.WithTransport(&http.Transport{}),     // default: [http.DefaultTransport]
+	httpz.WithBaseHeaders(nil),                 // default: nil (type map[string]string)
 	httpz.WithPaths(paths),                     // default: map[string]string{}
 	httpz.WithLogger(slog.Default()),           // default: [slog.Default]
 	httpz.WithLogMWEnabled(true),               // request/response logging, default: false
 	httpz.WithTracer(),                         // default: [otel.GetTracerProvider]
 	httpz.WithPropagator(),                     // default: [otel.GetTextMapPropagator]
 	httpz.WithOtelMWEnabled(true),              // opentelemetry tracing, default: false
-	httpz.WithServiceVersion(""),               // default: ""
+	httpz.WithServiceVersion(""),               // set to "User-Agent", default: ""
 )
 ```
 

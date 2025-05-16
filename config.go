@@ -11,6 +11,7 @@ import (
 type (
 	config struct {
 		transport      http.RoundTripper
+		baseHeaders    map[string]string
 		paths          map[string]string
 		logger         *slog.Logger
 		logMWEnabled   bool
@@ -27,6 +28,14 @@ func WithTransport(t *http.Transport) option {
 	return option(func(cfg *config) {
 		if t != nil {
 			cfg.transport = t
+		}
+	})
+}
+
+func WithBaseHeaders(h map[string]string) option {
+	return option(func(cfg *config) {
+		if h != nil {
+			cfg.baseHeaders = h
 		}
 	})
 }
