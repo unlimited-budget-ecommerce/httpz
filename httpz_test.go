@@ -73,8 +73,8 @@ func TestDoGetRequest(t *testing.T) {
 	res, err := Do[testGetRes](context.Background(), client, &req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode())
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.Equal(t, wantRes, res.Result)
 }
 
@@ -132,8 +132,8 @@ func TestDoPostRequest(t *testing.T) {
 	res, err := Do[testPostRes](context.Background(), client, &req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusCreated, res.StatusCode())
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.Equal(t, wantRes, res.Result)
 }
 
@@ -186,8 +186,8 @@ func TestDoBasicAuthRequest(t *testing.T) {
 	res, err := Do[testAuthRes](context.Background(), client, &req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode())
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.Equal(t, wantRes, res.Result)
 }
 
@@ -223,8 +223,8 @@ func TestDoBearerTokenRequest(t *testing.T) {
 	res, err := Do[testAuthRes](context.Background(), client, &req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode())
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.Equal(t, wantRes, res.Result)
 }
 
@@ -282,8 +282,8 @@ func TestLogMiddleware(t *testing.T) {
 		res, err := Do[testLogRes](context.Background(), clientWithLog, &req)
 
 		assert.NoError(t, err)
-		assert.Equal(t, http.StatusOK, res.StatusCode())
-		assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 		assert.Equal(t, wantResBody, res.Result)
 
 		logs := b.String()
@@ -314,8 +314,8 @@ func TestLogMiddleware(t *testing.T) {
 		res, err := Do[testLogRes](context.Background(), clientWithoutLog, &req)
 
 		assert.NoError(t, err)
-		assert.Equal(t, http.StatusOK, res.StatusCode())
-		assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 		assert.Equal(t, wantResBody, res.Result)
 
 		logs := b.String()

@@ -49,7 +49,8 @@ func NewClient(clientName, baseURL string, opts ...option) *Client {
 		OnBeforeRequest(logRequest(&cfg)).
 		OnAfterResponse(logResponse(&cfg)).
 		OnAfterResponse(endTraceSuccess(&cfg)).
-		OnError(endTraceError(&cfg))
+		OnError(endTraceError(&cfg)).
+		OnPanic(endTraceError(&cfg))
 
 	return &Client{
 		Client:  *restyClient,
@@ -69,7 +70,7 @@ type (
 	}
 	Response[T any] struct {
 		Result T
-		resty.Response
+		http.Response
 	}
 )
 
@@ -112,5 +113,5 @@ func Do[T any](ctx context.Context, client *Client, req *Request) (*Response[T],
 		return nil, fmt.Errorf("error executing request: %w", err)
 	}
 
-	return &Response[T]{Result: *result, Response: *res}, nil
+	return &Response[T]{Result: *result, Response: *res.RawResponse}, nil
 }
