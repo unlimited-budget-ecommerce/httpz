@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/go-resty/resty/v2"
 	"github.com/unlimited-budget-ecommerce/logz"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -13,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/semconv/v1.20.0/httpconv"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 	"go.opentelemetry.io/otel/trace"
+	"resty.dev/v3"
 )
 
 func startTrace(cfg *config) resty.RequestMiddleware {
@@ -63,7 +63,7 @@ func endTraceSuccess(cfg *config) resty.ResponseMiddleware {
 		span.SetAttributes(
 			attribute.KeyValue{
 				Key:   semconv.HTTPClientRequestDurationName,
-				Value: attribute.Int64Value(res.Time().Milliseconds()),
+				Value: attribute.Int64Value(res.Duration().Milliseconds()),
 			},
 			semconv.HTTPResponseStatusCode(res.StatusCode()),
 		)

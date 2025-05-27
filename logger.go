@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/go-resty/resty/v2"
+	"resty.dev/v3"
 )
 
 type logger struct{ *slog.Logger }

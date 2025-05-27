@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/unlimited-budget-ecommerce/logz"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+	"resty.dev/v3"
 )
 
 func logRequest(cfg *config) resty.RequestMiddleware {
@@ -51,10 +51,10 @@ func logResponse(cfg *config) resty.ResponseMiddleware {
 		logger := cfg.logger.With(
 			slog.String(string(semconv.URLFullKey), res.Request.URL),
 			slog.String(string(semconv.HTTPRequestMethodKey), res.Request.Method),
-			slog.Int64(semconv.HTTPClientRequestDurationName, res.Time().Milliseconds()),
+			slog.Int64(semconv.HTTPClientRequestDurationName, res.Duration().Milliseconds()),
 			slog.Int(string(semconv.HTTPResponseStatusCodeKey), res.StatusCode()),
 			slog.Any("http.response.header", logz.MaskHttpHeader(res.Header())),
-			slog.Any("http.response.body", maskBytes(ctx, res.Body(), "response body")),
+			slog.Any("http.response.body", maskBytes(ctx, res.Bytes(), "response body")), // TODO: handle large body
 		)
 
 		if res.IsError() {

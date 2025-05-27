@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
+	"resty.dev/v3"
 )
 
 type Client struct {
@@ -41,14 +41,15 @@ func NewClient(clientName, baseURL string, opts ...option) *Client {
 	restyClient := resty.NewWithClient(&http.Client{
 		Transport: cfg.transport,
 	})
-	restyClient.BaseURL = baseURL
 	restyClient.
+		SetBaseURL(baseURL).
 		SetHeaders(cfg.baseHeaders).
+		SetResponseBodyUnlimitedReads(true). // TODO: handle large body
 		SetLogger(logger{cfg.logger}).
-		OnBeforeRequest(startTrace(&cfg)).
-		OnBeforeRequest(logRequest(&cfg)).
-		OnAfterResponse(logResponse(&cfg)).
-		OnAfterResponse(endTraceSuccess(&cfg)).
+		AddRequestMiddleware(startTrace(&cfg)).
+		AddRequestMiddleware(logRequest(&cfg)).
+		AddResponseMiddleware(logResponse(&cfg)).
+		AddResponseMiddleware(endTraceSuccess(&cfg)).
 		OnError(endTraceError(&cfg)).
 		OnPanic(endTraceError(&cfg))
 
@@ -98,14 +99,15 @@ func Do[T any](ctx context.Context, client *Client, req *Request) (*Response[T],
 		R().
 		SetContext(ctx).
 		SetAuthScheme(req.AuthScheme).
-		SetAuthToken(req.Token).
+		SetAuthToken(req.AuthToken).
 		SetHeaderMultiValues(req.Header).
 		SetBody(req.Body).
 		SetQueryParams(req.QueryParams).
 		SetPathParams(req.PathParams).
 		SetResult(result)
-	if req.UserInfo != nil {
-		request.SetBasicAuth(req.UserInfo.Username, req.UserInfo.Password)
+
+	if user, pass, ok := req.RawRequest.BasicAuth(); ok { // FIXME: panic
+		request.SetBasicAuth(user, pass)
 	}
 
 	res, err := request.Execute(req.Method, path)
