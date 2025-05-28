@@ -58,18 +58,11 @@ func TestDoGetRequest(t *testing.T) {
 	client := NewClient("test-client", server.URL, WithPaths(map[string]string{
 		"testGet": "/test/get/{id}",
 	}))
-	req := Request{
-		PathName: "testGet",
-		QueryParams: map[string]string{
-			"foo": "bar",
-		},
-	}
-	req.Method = http.MethodGet
-	req.PathParams = map[string]string{
-		"id": "1",
-	}
+	req := NewRequest("testGet", http.MethodGet).
+		WithPathParams(map[string]string{"id": "1"}).
+		WithQueryParams(map[string]string{"foo": "bar"})
 
-	res, err := Do[testGetRes](context.Background(), client, &req)
+	res, err := Do[testGetRes](context.Background(), client, req)
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -124,11 +117,9 @@ func TestDoPostRequest(t *testing.T) {
 			"testPost": "/test/post",
 		}),
 	)
-	req := Request{PathName: "testPost"}
-	req.Method = http.MethodPost
-	req.Body = wantReq
+	req := NewRequest("testPost", http.MethodPost).WithBody(wantReq)
 
-	res, err := Do[testPostRes](context.Background(), client, &req)
+	res, err := Do[testPostRes](context.Background(), client, req)
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, res.StatusCode)
@@ -138,9 +129,9 @@ func TestDoPostRequest(t *testing.T) {
 
 func TestDoPathNotFound(t *testing.T) {
 	client := NewClient("", "")
-	req := Request{PathName: "notExistPath"}
+	req := NewRequest("notExistPath", http.MethodGet)
 
-	_, err := Do[any](req.Context(), client, &req)
+	_, err := Do[any](context.Background(), client, req)
 
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), `path "notExistPath" not found`)
@@ -178,11 +169,9 @@ func TestDoBasicAuthRequest(t *testing.T) {
 	client := NewClient("test-client", server.URL, WithPaths(map[string]string{
 		"testBasicAuth": "/test/auth/basic",
 	}))
-	req := Request{PathName: "testBasicAuth"}
-	req.Method = http.MethodPost
-	req.SetBasicAuth(wantUser, wantPass)
+	req := NewRequest("testBasicAuth", http.MethodPost).WithBasicAuth(wantUser, wantPass)
 
-	res, err := Do[testAuthRes](context.Background(), client, &req)
+	res, err := Do[testAuthRes](context.Background(), client, req)
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -215,11 +204,11 @@ func TestDoBearerTokenRequest(t *testing.T) {
 	client := NewClient("test-client", server.URL, WithPaths(map[string]string{
 		"testBearerAuth": "/test/auth/bearer",
 	}))
-	req := Request{PathName: "testBearerAuth"}
-	req.Method = http.MethodPost
-	req.SetAuthScheme("Bearer").SetAuthToken(wantToken)
+	req := NewRequest("testBearerAuth", http.MethodPost).
+		WithAuthScheme("Bearer").
+		WithAuthToken(wantToken)
 
-	res, err := Do[testAuthRes](context.Background(), client, &req)
+	res, err := Do[testAuthRes](context.Background(), client, req)
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -259,10 +248,9 @@ func TestDoRequestWithRetry(t *testing.T) {
 	client.SetRetryCount(maxAttempts - 1)
 	client.SetRetryWaitTime(1 * time.Millisecond)
 	client.SetRetryMaxWaitTime(1 * time.Millisecond)
-	req := Request{PathName: "testRetry"}
-	req.Method = http.MethodPost
+	req := NewRequest("testRetry", http.MethodPost)
 
-	res, err := Do[testRetryRes](context.Background(), client, &req)
+	res, err := Do[testRetryRes](context.Background(), client, req)
 
 	assert.NoError(t, err)
 	if err == nil {

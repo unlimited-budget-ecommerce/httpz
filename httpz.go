@@ -61,56 +61,110 @@ func NewClient(clientName, baseURL string, opts ...option) *Client {
 	}
 }
 
-type (
-	Request struct {
-		// PathName is the name registered with [httpz.WithPaths]
-		PathName string
-		// use this field instead of [resty.Request.QueryParam]
-		QueryParams map[string]string
-		resty.Request
+type request struct {
+	// pathName is the name registered with [httpz.WithPaths]
+	pathName    string
+	queryParams map[string]string
+	basicAuth   *basicAuth
+	r           resty.Request
+}
+
+type basicAuth struct {
+	user, pass string
+}
+
+// NewRequest returns [*request] given pathName, and method.
+func NewRequest(pathName, method string) *request {
+	return &request{
+		pathName: pathName,
+		r:        resty.Request{Method: method},
 	}
-	Response[T any] struct {
-		Result T
-		http.Response
+}
+
+func (r *request) WithHeader(header http.Header) *request {
+	if header != nil {
+		r.r.Header = header
 	}
-)
+	return r
+}
+
+func (r *request) WithBody(body any) *request {
+	if body != nil {
+		r.r.Body = body
+	}
+	return r
+}
+
+func (r *request) WithAuthScheme(scheme string) *request {
+	r.r.AuthScheme = scheme
+	return r
+}
+
+func (r *request) WithAuthToken(token string) *request {
+	r.r.AuthToken = token
+	return r
+}
+
+func (r *request) WithBasicAuth(user, pass string) *request {
+	r.basicAuth = &basicAuth{user: user, pass: pass}
+	return r
+}
+
+func (r *request) WithQueryParams(params map[string]string) *request {
+	if params != nil {
+		r.queryParams = params
+	}
+	return r
+}
+
+func (r *request) WithPathParams(params map[string]string) *request {
+	if params != nil {
+		r.r.PathParams = params
+	}
+	return r
+}
+
+type Response[T any] struct {
+	Result T
+	http.Response
+}
 
 // Do executes an HTTP request and returns a typed response *T and [*resty.Response].
 //
 // It looks up the request path by name from the client's registered paths.
 // It also sets default headers including "Content-Type: application/json" and "User-Agent"
 // based on the client name.
-func Do[T any](ctx context.Context, client *Client, req *Request) (*Response[T], error) {
-	path, ok := client.paths[req.PathName]
+func Do[T any](ctx context.Context, client *Client, req *request) (*Response[T], error) {
+	path, ok := client.paths[req.pathName]
 	if !ok {
-		return nil, fmt.Errorf("path %q not found", req.PathName)
+		return nil, fmt.Errorf("path %q not found", req.pathName)
 	}
 
-	if req.Header == nil {
-		req.Header = make(http.Header)
+	if req.r.Header == nil {
+		req.r.Header = make(http.Header)
 	}
-	if req.Header.Get("Content-Type") == "" {
-		req.Header.Set("Content-Type", "application/json")
+	if req.r.Header.Get("Content-Type") == "" {
+		req.r.Header.Set("Content-Type", "application/json")
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", client.name, client.version))
+	req.r.Header.Set("User-Agent", fmt.Sprintf("%s/%s", client.name, client.version))
 
 	result := new(T)
 	request := client.
 		R().
 		SetContext(ctx).
-		SetAuthScheme(req.AuthScheme).
-		SetAuthToken(req.AuthToken).
-		SetHeaderMultiValues(req.Header).
-		SetBody(req.Body).
-		SetQueryParams(req.QueryParams).
-		SetPathParams(req.PathParams).
+		SetAuthScheme(req.r.AuthScheme).
+		SetAuthToken(req.r.AuthToken).
+		SetHeaderMultiValues(req.r.Header).
+		SetBody(req.r.Body).
+		SetQueryParams(req.queryParams).
+		SetPathParams(req.r.PathParams).
 		SetResult(result)
 
-	if user, pass, ok := req.RawRequest.BasicAuth(); ok { // FIXME: panic
-		request.SetBasicAuth(user, pass)
+	if req.basicAuth != nil {
+		request.SetBasicAuth(req.basicAuth.user, req.basicAuth.pass)
 	}
 
-	res, err := request.Execute(req.Method, path)
+	res, err := request.Execute(req.r.Method, path)
 	if err != nil {
 		return nil, fmt.Errorf("error executing request: %w", err)
 	}
