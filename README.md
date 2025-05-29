@@ -54,7 +54,7 @@ resp, err := httpz.Do[CreateUserRes](ctx, client, req)
 if err != nil {
 	return resp, fmt.Errorf("failed to create user: %w", err) // resp is nil
 }
-if resp.IsError() {
+if resp.StatusCode >= 400 {
 	return resp, fmt.Errorf("error creating user, got status: %d" ,resp.StatusCode())
 }
 ```
