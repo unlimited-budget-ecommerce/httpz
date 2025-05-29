@@ -83,6 +83,7 @@ func NewRequest(pathName, method string) *request {
 	}
 }
 
+// WithHeader set headers to the request. It will override the same keys set with [WithBaseHeaders]
 func (r *request) WithHeader(header http.Header) *request {
 	if header != nil {
 		r.r.Header = header
@@ -97,6 +98,10 @@ func (r *request) WithBody(body any) *request {
 	return r
 }
 
+// WithAuthScheme sets the auth token scheme type for the request.
+// HTTP auth scheme values can be found in [IANA HTTP Auth schemes]
+//
+// [IANA HTTP Auth schemes]: https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml#authschemes
 func (r *request) WithAuthScheme(scheme string) *request {
 	r.r.AuthScheme = scheme
 	return r
