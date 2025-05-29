@@ -74,6 +74,8 @@ type basicAuth struct {
 }
 
 // NewRequest returns [*request] given pathName, and method.
+//
+// pathName should matches with the key in configured paths.
 func NewRequest(pathName, method string) *request {
 	return &request{
 		pathName: pathName,

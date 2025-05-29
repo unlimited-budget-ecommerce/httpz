@@ -8,6 +8,7 @@
 - Typed responses using generics
 - Structured logging middleware
 - OpenTelemetry tracing middleware
+- Retry mechanism
 
 ## Installation
 
@@ -46,40 +47,25 @@ client := httpz.NewClient(
 
 ```go
 // prepare request
-req := &httpz.Request{
-	PathName: "createUser", // matches the key in WithPaths()
+req := NewRequest("createUser", http.MethodPost).WithBody(CreateUserReq{})
+
+// making a request
+resp, err := httpz.Do[CreateUserRes](ctx, client, req)
+if err != nil {
+	return resp, fmt.Errorf("failed to create user: %w", err) // resp is nil
 }
-req.Method = http.MethodPost
-req.Body = CreateUserReq{}
-
-// example function
-func (a *adapter) CreateUser(ctx context.Context, req *http.Request) (*httpz.Response[CreateUserRes], error) {
-	resp, err := httpz.Do[CreateUserRes](ctx, a.client, &req)
-	if err != nil {
-		return resp, fmt.Errorf("failed to create user: %w", err) // resp is nil
-	}
-
-	if resp.IsError() {
-		return resp, fmt.Errorf("error creating user, got status: %d" ,resp.StatusCode())
-	}
-
-	return resp, nil
+if resp.IsError() {
+	return resp, fmt.Errorf("error creating user, got status: %d" ,resp.StatusCode())
 }
 ```
 
 ### Making a GET request
 
 ```go
-req := &httpz.Request{
-	PathName: "getUser",            // matches the key in WithPaths()
-	QueryParams: map[string]string{ // use this field instead of [resty.Request.QueryParam]
-		"foo": "bar",
-	},
-}
-req.Method = http.MethodGet
-req.PathParams = map[string]string{
-	"id": "1",
-}
+// prepare request
+req := NewRequest("getUser", http.MethodGet).
+	WithPathParams(map[string]string{"id": "1"}).
+	WithQueryParams(map[string]string{"foo": "bar"})
 
 // the rest should be similar to the above example
 ```
@@ -90,8 +76,6 @@ You can configure retry attempts, wait times, and conditions for retrying a requ
 
 To enable and configure retries, you would typically interact with the `Client` or `Request` struct. Reference: https://resty.dev/docs/retry-mechanism/
 
-Option 1: client level retries
-
 ```go
 client :=  httpz.NewClient("", "")
 client.
@@ -99,17 +83,4 @@ client.
 	SetRetryCount(1).                         // default: 0 (total attempt = initial attempt + retry count)
 	SetRetryWaitTime(100 * time.Millisecond). // default: 100ms
 	SetRetryMaxWaitTime(2 * time.Second)      // default: 2s
-```
-
-Option 2: request level retries
-
-```go
-req := &httpz.Request{
-	PathName: "createUser", // matches the key in WithPaths()
-}
-req.
-	SetAllowNonIdempotentRetry(true).
-	SetRetryCount(1).
-	SetRetryWaitTime(100 * time.Millisecond).
-	SetRetryMaxWaitTime(2 * time.Second)
 ```
