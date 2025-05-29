@@ -137,6 +137,54 @@ func TestDoPathNotFound(t *testing.T) {
 	assert.Equal(t, err.Error(), `path "notExistPath" not found`)
 }
 
+func TestDoSetClientAndRequestHeaders(t *testing.T) {
+	type testGetRes struct {
+		Code int `json:"code"`
+	}
+	wantRes := testGetRes{Code: 123}
+	server := startTestServer(t, testHandler{
+		method: http.MethodGet,
+		path:   "/test/get",
+		handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "test-client/", r.UserAgent())
+			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			assert.Equal(t, "test-header-val1", r.Header.Get("x-test-header1"))
+			assert.Equal(t, "test-header-val2", r.Header.Get("x-test-header2"))
+			assert.Equal(t, "new-test-header-val", r.Header.Get("x-test-header3"))
+			assert.Equal(t, "test-header-val4", r.Header.Get("x-test-header4"))
+			assert.Equal(t, "test-header-val5", r.Header.Get("x-test-header5"))
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+
+			err := json.NewEncoder(w).Encode(wantRes)
+
+			assert.NoError(t, err)
+		},
+	})
+	client := NewClient("test-client", server.URL,
+		WithPaths(map[string]string{"testGet": "/test/get"}),
+		WithBaseHeaders(map[string]string{
+			"x-test-header1": "test-header-val1",
+			"x-test-header2": "test-header-val2",
+			"x-test-header3": "test-header-val3",
+		}),
+	)
+	req := NewRequest("testGet", http.MethodGet).
+		WithHeader(http.Header{
+			"x-test-header3": []string{"new-test-header-val"},
+			"x-test-header4": []string{"test-header-val4"},
+			"x-test-header5": []string{"test-header-val5"},
+		})
+
+	res, err := Do[testGetRes](context.Background(), client, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.Equal(t, wantRes, res.Result)
+}
+
 func TestDoBasicAuthRequest(t *testing.T) {
 	type testAuthRes struct {
 		Authenticated bool `json:"authenticated"`
