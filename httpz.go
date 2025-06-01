@@ -37,12 +37,16 @@ func NewClient(clientName, baseURL string, opts ...option) *Client {
 	if cfg.propagator == nil {
 		cfg.propagator = otel.GetTextMapPropagator()
 	}
+	if !cfg.circuitBreakerEnabled {
+		cfg.circuitBreaker = nil
+	}
 
 	restyClient := resty.NewWithClient(&http.Client{
 		Transport: cfg.transport,
 	})
 	restyClient.
 		SetBaseURL(baseURL).
+		SetCircuitBreaker(cfg.circuitBreaker).
 		SetHeaders(cfg.baseHeaders).
 		SetResponseBodyUnlimitedReads(true). // TODO: handle large body
 		SetLogger(logger{cfg.logger}).
@@ -141,6 +145,8 @@ type Response[T any] struct {
 // It looks up the request path by name from the client's registered paths.
 // It also sets default headers including "Content-Type: application/json" and "User-Agent"
 // based on the client name.
+//
+// TODO: support request level retries
 func Do[T any](ctx context.Context, client *Client, req *request) (*Response[T], error) {
 	path, ok := client.paths[req.pathName]
 	if !ok {

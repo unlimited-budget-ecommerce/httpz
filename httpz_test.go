@@ -11,6 +11,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+	"resty.dev/v3"
 )
 
 type testHandler struct {
@@ -305,4 +306,83 @@ func TestDoRequestWithRetry(t *testing.T) {
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 	}
 	assert.Equal(t, maxAttempts, attempts)
+}
+
+func TestClientCircuitBreaker(t *testing.T) {
+	server := startTestServer(t,
+		testHandler{
+			method: http.MethodGet,
+			path:   "/200",
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
+			},
+		},
+		testHandler{
+			method: http.MethodGet,
+			path:   "/500",
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"status":"error"}`))
+			},
+		},
+	)
+	failureThreshold := uint32(3)
+	successThreshold := uint32(1)
+	cbTimeout := 100 * time.Millisecond
+	client := NewClient("test-circuit-breaker", server.URL,
+		WithPaths(map[string]string{
+			"success": "/200",
+			"fail":    "/500",
+		}),
+		WithCircuitBreaker(cbTimeout, failureThreshold, successThreshold),
+		WithCircuitBreakerEnabled(true),
+	)
+	successReq := NewRequest("success", http.MethodGet)
+	failReq := NewRequest("fail", http.MethodGet)
+
+	for range failureThreshold {
+		res, err := Do[map[string]string](context.Background(), client, failReq)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+		assert.NotNil(t, res)
+	}
+	t.Log("Circuit Breaker Open")
+
+	res, err := Do[map[string]string](context.Background(), client, successReq)
+
+	assert.ErrorIs(t, err, resty.ErrCircuitBreakerOpen)
+	assert.Nil(t, res)
+
+	time.Sleep(cbTimeout + 50*time.Millisecond)
+	t.Log("Circuit Breaker Half-Open")
+
+	res, err = Do[map[string]string](context.Background(), client, failReq)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.NotNil(t, res)
+	t.Log("Circuit Breaker Open")
+
+	res, err = Do[map[string]string](context.Background(), client, successReq)
+
+	assert.ErrorIs(t, err, resty.ErrCircuitBreakerOpen)
+	assert.Nil(t, res)
+
+	time.Sleep(cbTimeout + 50*time.Millisecond)
+	t.Log("Circuit Breaker Half-Open Again")
+
+	res, err = Do[map[string]string](context.Background(), client, successReq)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NotNil(t, res)
+	t.Log("Circuit Breaker Closed")
+
+	res, err = Do[map[string]string](context.Background(), client, successReq)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NotNil(t, res)
 }
