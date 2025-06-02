@@ -1,6 +1,6 @@
 # HTTPZ - HTTP client
 
-`httpz` simplify the process of making HTTP requests. It a wrapper around `resty.dev/v3`, with built-in request/response logging and opentelemetry tracing middleware. It also support retry mechanism.
+`httpz` simplify the process of making HTTP requests. It a wrapper around `resty.dev/v3`, with built-in request/response logging and opentelemetry tracing middleware. It also support retry mechanism and circuit breaker.
 
 ## Features
 
@@ -9,6 +9,7 @@
 - Structured logging middleware
 - OpenTelemetry tracing middleware
 - Retry mechanism
+- Circuit breaker
 
 ## Installation
 
@@ -40,6 +41,8 @@ client := httpz.NewClient(
 	httpz.WithPropagator(nil),              // default: [otel.GetTextMapPropagator]
 	httpz.WithOtelMWEnabled(true),          // opentelemetry tracing, default: false
 	httpz.WithServiceVersion(""),           // set to "User-Agent", default: ""
+	httpz.WithCircuitBreaker(0, 0, 0, nil), // passing zero values will result to default values: 10s, 3, 1, Status Code 500 and above
+	httpz.WithCircuitBreakerEnabled(true),  // default: false
 )
 ```
 
