@@ -121,9 +121,13 @@ func WithCircuitBreaker(
 		if len(policies) > 0 {
 			pp := make([]resty.CircuitBreakerPolicy, 0, len(policies))
 			for _, p := range policies {
-				pp = append(pp, resty.CircuitBreakerPolicy(p))
+				if p != nil {
+					pp = append(pp, resty.CircuitBreakerPolicy(p))
+				}
 			}
-			cfg.circuitBreaker.SetPolicies(pp...)
+			if len(pp) > 0 {
+				cfg.circuitBreaker.SetPolicies(pp...)
+			}
 		}
 	})
 }

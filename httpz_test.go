@@ -335,7 +335,7 @@ func TestClientCircuitBreaker(t *testing.T) {
 			"success": "/200",
 			"fail":    "/500",
 		}),
-		WithCircuitBreaker(cbTimeout, failureThreshold, successThreshold),
+		WithCircuitBreaker(cbTimeout, failureThreshold, successThreshold, nil),
 		WithCircuitBreakerEnabled(true),
 	)
 	successReq := NewRequest("success", http.MethodGet)
