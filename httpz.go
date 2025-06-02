@@ -47,6 +47,14 @@ func NewClient(clientName, baseURL string, opts ...option) *Client {
 	restyClient.
 		SetBaseURL(baseURL).
 		SetCircuitBreaker(cfg.circuitBreaker).
+		// TODO: investigate performance issue with AddContentTypeEncoder/AddContentTypeDecoder
+		// compared to SetJSONMarshaler/SetJSONUnmarshaler
+		// AddContentTypeEncoder("application/json", func(w io.Writer, v any) error {
+		// 	return json.NewEncoder(w).Encode(v)
+		// }).
+		// AddContentTypeDecoder("application/json", func(r io.Reader, v any) error {
+		// 	return json.NewDecoder(r).Decode(v)
+		// }).
 		SetHeaders(cfg.baseHeaders).
 		SetResponseBodyUnlimitedReads(true). // TODO: handle large body
 		SetLogger(logger{cfg.logger}).
