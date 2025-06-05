@@ -1,11 +1,11 @@
 # HTTPZ - HTTP client
 
-`httpz` simplify the process of making HTTP requests. It a wrapper around `resty.dev/v3`, with built-in request/response logging and opentelemetry tracing middleware. It also support retry mechanism and circuit breaker.
+`httpz` simplify the process of making HTTP requests. It a wrapper around `resty.dev/v3`, with built-in request/response logging and opentelemetry tracing middleware. It also support retry mechanism and circuit breaker pattern.
 
 ## Features
 
 - Configurable
-- Typed responses using generics
+- Typed response result
 - Structured logging middleware
 - OpenTelemetry tracing middleware
 - Retry mechanism
@@ -41,6 +41,7 @@ client := httpz.NewClient(
 	httpz.WithPropagator(nil),              // default: [otel.GetTextMapPropagator]
 	httpz.WithOtelMWEnabled(true),          // opentelemetry tracing, default: false
 	httpz.WithServiceVersion(""),           // set to "User-Agent", default: ""
+	// read function doc for more details
 	httpz.WithCircuitBreaker(0, 0, 0, nil), // passing zero values will result to default values: 10s, 3, 1, Status Code 500 and above
 	httpz.WithCircuitBreakerEnabled(true),  // default: false
 )
@@ -49,28 +50,34 @@ client := httpz.NewClient(
 ### Making a POST request
 
 ```go
-// prepare request
-req := NewRequest("createUser", http.MethodPost).WithBody(CreateUserReq{})
+// expected result struct when making a request
+result := &CreateUserRes{}
 
-// making a request
-resp, err := httpz.Do[CreateUserRes](ctx, client, req)
+res, err := client.NewRequest(context.Background()).
+	SetBody(&CreateUserReq{}). // example request body
+	SetResult(result).
+	Post(client.GetPath("createUser"))
 if err != nil {
-	return resp, fmt.Errorf("failed to create user: %w", err) // resp is nil
+	return nil, fmt.Errorf("failed to create user: %w", err)
 }
-if resp.StatusCode >= 400 {
-	return resp, fmt.Errorf("error creating user, got status: %d" ,resp.StatusCode())
+if res.IsError() {
+	return res, fmt.Errorf("error creating user, got status: %d" ,res.StatusCode())
 }
 ```
 
 ### Making a GET request
 
 ```go
-// prepare request
-req := NewRequest("getUser", http.MethodGet).
-	WithPathParams(map[string]string{"id": "1"}).
-	WithQueryParams(map[string]string{"foo": "bar"})
+// expected result struct when making a request
+result := &GetUserRes{}
 
-// the rest should be similar to the above example
+res, err := client.NewRequest(context.Background()).
+	SetPathParams(map[string]string{"id": "1"}).
+	SetQueryParams(map[string]string{"foo": "bar"}).
+	SetResult(result).
+	Get(client.GetPath("getUser"))
+
+// handle error
 ```
 
 ### Making a request with retries
