@@ -11,7 +11,6 @@ import (
 )
 
 type (
-	// TODO: retries config
 	config struct {
 		transport             http.RoundTripper
 		baseHeaders           map[string]string

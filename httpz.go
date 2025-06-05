@@ -73,122 +73,19 @@ func NewClient(clientName, baseURL string, opts ...option) *Client {
 	}
 }
 
-type request struct {
-	// pathName is the name registered with [httpz.WithPaths]
-	pathName    string
-	queryParams map[string]string
-	basicAuth   *basicAuth
-	r           resty.Request
+func (c *Client) GetPath(pathName string) string {
+	return c.paths[pathName]
 }
 
-type basicAuth struct {
-	user, pass string
-}
-
-// NewRequest returns [*request] given pathName, and method.
+// NewRequest returns *[resty.Request] from given context.
 //
-// pathName should matches with the key in configured paths.
-func NewRequest(pathName, method string) *request {
-	return &request{
-		pathName: pathName,
-		r:        resty.Request{Method: method},
-	}
-}
-
-// WithHeader set headers to the request. It will override the same keys set with [WithBaseHeaders]
-func (r *request) WithHeader(header http.Header) *request {
-	if header != nil {
-		r.r.Header = header
-	}
-	return r
-}
-
-func (r *request) WithBody(body any) *request {
-	if body != nil {
-		r.r.Body = body
-	}
-	return r
-}
-
-// WithAuthScheme sets the auth token scheme type for the request.
-// HTTP auth scheme values can be found in [IANA HTTP Auth schemes]
-//
-// [IANA HTTP Auth schemes]: https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml#authschemes
-func (r *request) WithAuthScheme(scheme string) *request {
-	r.r.AuthScheme = scheme
-	return r
-}
-
-func (r *request) WithAuthToken(token string) *request {
-	r.r.AuthToken = token
-	return r
-}
-
-func (r *request) WithBasicAuth(user, pass string) *request {
-	r.basicAuth = &basicAuth{user: user, pass: pass}
-	return r
-}
-
-func (r *request) WithQueryParams(params map[string]string) *request {
-	if params != nil {
-		r.queryParams = params
-	}
-	return r
-}
-
-func (r *request) WithPathParams(params map[string]string) *request {
-	if params != nil {
-		r.r.PathParams = params
-	}
-	return r
-}
-
-type Response[T any] struct {
-	Result T
-	http.Response
-}
-
-// Do executes an HTTP request and returns a typed response *T and [*resty.Response].
-//
-// It looks up the request path by name from the client's registered paths.
-// It also sets default headers including "Content-Type: application/json" and "User-Agent"
-// based on the client name.
-//
-// TODO: support request level retries
-func Do[T any](ctx context.Context, client *Client, req *request) (*Response[T], error) {
-	path, ok := client.paths[req.pathName]
-	if !ok {
-		return nil, fmt.Errorf("path %q not found", req.pathName)
-	}
-
-	if req.r.Header == nil {
-		req.r.Header = make(http.Header)
-	}
-	if req.r.Header.Get("Content-Type") == "" {
-		req.r.Header.Set("Content-Type", "application/json")
-	}
-	req.r.Header.Set("User-Agent", fmt.Sprintf("%s/%s", client.name, client.version))
-
-	result := new(T)
-	request := client.
-		R().
+// It sets default headers "Content-Type" to "application/json" and "User-Agent"
+// based on the client name and version.
+func (c *Client) NewRequest(ctx context.Context) *resty.Request {
+	return c.R().
 		SetContext(ctx).
-		SetAuthScheme(req.r.AuthScheme).
-		SetAuthToken(req.r.AuthToken).
-		SetHeaderMultiValues(req.r.Header).
-		SetBody(req.r.Body).
-		SetQueryParams(req.queryParams).
-		SetPathParams(req.r.PathParams).
-		SetResult(result)
-
-	if req.basicAuth != nil {
-		request.SetBasicAuth(req.basicAuth.user, req.basicAuth.pass)
-	}
-
-	res, err := request.Execute(req.r.Method, path)
-	if err != nil {
-		return nil, fmt.Errorf("error executing request: %w", err)
-	}
-
-	return &Response[T]{Result: *result, Response: *res.RawResponse}, nil
+		SetHeaders(map[string]string{
+			"Content-Type": "application/json",
+			"User-Agent":   fmt.Sprintf("%s/%s", c.name, c.version),
+		})
 }

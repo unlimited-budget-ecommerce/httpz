@@ -57,16 +57,18 @@ func TestLogMiddleware(t *testing.T) {
 	)
 
 	t.Run("logging enabled success msg", func(t *testing.T) {
-		req := NewRequest("testLog", http.MethodPost).
-			WithHeader(http.Header{"X-Test-Req": []string{"req-header-val"}}).
-			WithBody(wantReqBody)
+		result := &testLogRes{}
 
-		res, err := Do[testLogRes](context.Background(), clientWithLog, req)
+		res, err := clientWithLog.NewRequest(context.Background()).
+			SetHeader("X-Test-Req", "req-header-val").
+			SetBody(wantReqBody).
+			SetResult(result).
+			Post(clientWithLog.GetPath("testLog"))
 
 		assert.NoError(t, err)
-		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-		assert.Equal(t, wantResBody, res.Result)
+		assert.Equal(t, http.StatusOK, res.StatusCode())
+		assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+		assert.Equal(t, &wantResBody, res.Result())
 
 		logs := b.String()
 		t.Log("captured logs:\n", logs)
@@ -88,14 +90,17 @@ func TestLogMiddleware(t *testing.T) {
 
 	t.Run("logging disabled", func(t *testing.T) {
 		b.Reset()
-		req := NewRequest("testLog", http.MethodPost).WithBody(wantReqBody)
+		result := &testLogRes{}
 
-		res, err := Do[testLogRes](context.Background(), clientWithoutLog, req)
+		res, err := clientWithoutLog.NewRequest(context.Background()).
+			SetBody(wantReqBody).
+			SetResult(result).
+			Post(clientWithoutLog.GetPath("testLog"))
 
 		assert.NoError(t, err)
-		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-		assert.Equal(t, wantResBody, res.Result)
+		assert.Equal(t, http.StatusOK, res.StatusCode())
+		assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+		assert.Equal(t, &wantResBody, res.Result())
 
 		logs := b.String()
 

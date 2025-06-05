@@ -33,7 +33,7 @@ func startTestServer(t *testing.T, handlers ...testHandler) *httptest.Server {
 	return server
 }
 
-func TestDoGetRequest(t *testing.T) {
+func TestGetRequest(t *testing.T) {
 	type testGetRes struct {
 		Code int    `json:"code"`
 		Desc string `json:"desc"`
@@ -59,19 +59,21 @@ func TestDoGetRequest(t *testing.T) {
 	client := NewClient("test-client", server.URL, WithPaths(map[string]string{
 		"testGet": "/test/get/{id}",
 	}))
-	req := NewRequest("testGet", http.MethodGet).
-		WithPathParams(map[string]string{"id": "1"}).
-		WithQueryParams(map[string]string{"foo": "bar"})
+	result := &testGetRes{}
 
-	res, err := Do[testGetRes](context.Background(), client, req)
+	res, err := client.NewRequest(context.Background()).
+		SetPathParams(map[string]string{"id": "1"}).
+		SetQueryParams(map[string]string{"foo": "bar"}).
+		SetResult(result).
+		Get(client.GetPath("testGet"))
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.Equal(t, wantRes, res.Result)
+	assert.Equal(t, http.StatusOK, res.StatusCode())
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, &wantRes, res.Result())
 }
 
-func TestDoPostRequest(t *testing.T) {
+func TestPostRequest(t *testing.T) {
 	type testPostReq struct {
 		Name string `json:"name"`
 		Age  int    `json:"age"`
@@ -118,27 +120,38 @@ func TestDoPostRequest(t *testing.T) {
 			"testPost": "/test/post",
 		}),
 	)
-	req := NewRequest("testPost", http.MethodPost).WithBody(wantReq)
+	result := &testPostRes{}
 
-	res, err := Do[testPostRes](context.Background(), client, req)
+	res, err := client.NewRequest(context.Background()).
+		SetBody(wantReq).
+		SetResult(result).
+		Post(client.GetPath("testPost"))
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusCreated, res.StatusCode)
-	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.Equal(t, wantRes, res.Result)
+	assert.Equal(t, http.StatusCreated, res.StatusCode())
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, &wantRes, res.Result())
 }
 
-func TestDoPathNotFound(t *testing.T) {
-	client := NewClient("", "")
-	req := NewRequest("notExistPath", http.MethodGet)
+func TestGetNonExistPath(t *testing.T) {
+	server := startTestServer(t, testHandler{
+		method: http.MethodGet,
+		path:   "/foo",
+		handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		},
+	})
+	client := NewClient("test-client", server.URL)
 
-	_, err := Do[any](context.Background(), client, req)
+	res, err := client.NewRequest(context.Background()).
+		Get(client.GetPath("nonExistPath"))
 
-	assert.Error(t, err)
-	assert.Equal(t, err.Error(), `path "notExistPath" not found`)
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Equal(t, http.StatusNotFound, res.StatusCode())
 }
 
-func TestDoSetClientAndRequestHeaders(t *testing.T) {
+func TestSetClientAndRequestHeaders(t *testing.T) {
 	type testGetRes struct {
 		Code int `json:"code"`
 	}
@@ -171,22 +184,24 @@ func TestDoSetClientAndRequestHeaders(t *testing.T) {
 			"x-test-header3": "test-header-val3",
 		}),
 	)
-	req := NewRequest("testGet", http.MethodGet).
-		WithHeader(http.Header{
-			"x-test-header3": []string{"new-test-header-val"},
-			"x-test-header4": []string{"test-header-val4"},
-			"x-test-header5": []string{"test-header-val5"},
-		})
+	result := &testGetRes{}
 
-	res, err := Do[testGetRes](context.Background(), client, req)
+	res, err := client.NewRequest(context.Background()).
+		SetHeaders(map[string]string{
+			"x-test-header3": "new-test-header-val",
+			"x-test-header4": "test-header-val4",
+			"x-test-header5": "test-header-val5",
+		}).
+		SetResult(result).
+		Get(client.GetPath("testGet"))
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.Equal(t, wantRes, res.Result)
+	assert.Equal(t, http.StatusOK, res.StatusCode())
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, &wantRes, res.Result())
 }
 
-func TestDoBasicAuthRequest(t *testing.T) {
+func TestBasicAuthRequest(t *testing.T) {
 	type testAuthRes struct {
 		Authenticated bool `json:"authenticated"`
 	}
@@ -218,17 +233,20 @@ func TestDoBasicAuthRequest(t *testing.T) {
 	client := NewClient("test-client", server.URL, WithPaths(map[string]string{
 		"testBasicAuth": "/test/auth/basic",
 	}))
-	req := NewRequest("testBasicAuth", http.MethodPost).WithBasicAuth(wantUser, wantPass)
+	result := &testAuthRes{}
 
-	res, err := Do[testAuthRes](context.Background(), client, req)
+	res, err := client.NewRequest(context.Background()).
+		SetBasicAuth(wantUser, wantPass).
+		SetResult(result).
+		Post(client.GetPath("testBasicAuth"))
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.Equal(t, wantRes, res.Result)
+	assert.Equal(t, http.StatusOK, res.StatusCode())
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, &wantRes, res.Result())
 }
 
-func TestDoBearerTokenRequest(t *testing.T) {
+func TestBearerTokenRequest(t *testing.T) {
 	type testAuthRes struct {
 		Authenticated bool `json:"authenticated"`
 	}
@@ -253,19 +271,21 @@ func TestDoBearerTokenRequest(t *testing.T) {
 	client := NewClient("test-client", server.URL, WithPaths(map[string]string{
 		"testBearerAuth": "/test/auth/bearer",
 	}))
-	req := NewRequest("testBearerAuth", http.MethodPost).
-		WithAuthScheme("Bearer").
-		WithAuthToken(wantToken)
+	result := &testAuthRes{}
 
-	res, err := Do[testAuthRes](context.Background(), client, req)
+	res, err := client.NewRequest(context.Background()).
+		SetAuthScheme("Bearer").
+		SetAuthToken(wantToken).
+		SetResult(result).
+		Post(client.GetPath("testBearerAuth"))
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.Equal(t, wantRes, res.Result)
+	assert.Equal(t, http.StatusOK, res.StatusCode())
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, &wantRes, res.Result())
 }
 
-func TestDoRequestWithRetry(t *testing.T) {
+func TestRequestWithRetry(t *testing.T) {
 	type testRetryRes struct {
 		Message string `json:"message"`
 	}
@@ -297,13 +317,15 @@ func TestDoRequestWithRetry(t *testing.T) {
 	client.SetRetryCount(maxAttempts - 1)
 	client.SetRetryWaitTime(1 * time.Millisecond)
 	client.SetRetryMaxWaitTime(1 * time.Millisecond)
-	req := NewRequest("testRetry", http.MethodPost)
+	result := &testRetryRes{}
 
-	res, err := Do[testRetryRes](context.Background(), client, req)
+	res, err := client.NewRequest(context.Background()).
+		SetResult(result).
+		Post(client.GetPath("testRetry"))
 
 	assert.NoError(t, err)
 	if err == nil {
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Equal(t, http.StatusOK, res.StatusCode())
 	}
 	assert.Equal(t, maxAttempts, attempts)
 }
@@ -338,19 +360,18 @@ func TestClientCircuitBreaker(t *testing.T) {
 		WithCircuitBreaker(cbTimeout, failureThreshold, successThreshold, nil),
 		WithCircuitBreakerEnabled(true),
 	)
-	successReq := NewRequest("success", http.MethodGet)
-	failReq := NewRequest("fail", http.MethodGet)
+	req := client.NewRequest(context.Background())
 
 	for range failureThreshold {
-		res, err := Do[map[string]string](context.Background(), client, failReq)
+		res, err := req.Get(client.GetPath("fail"))
 
 		assert.NoError(t, err)
-		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+		assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
 		assert.NotNil(t, res)
 	}
 	t.Log("Circuit Breaker Open")
 
-	res, err := Do[map[string]string](context.Background(), client, successReq)
+	res, err := req.Get(client.GetPath("success"))
 
 	assert.ErrorIs(t, err, resty.ErrCircuitBreakerOpen)
 	assert.Nil(t, res)
@@ -358,14 +379,14 @@ func TestClientCircuitBreaker(t *testing.T) {
 	time.Sleep(cbTimeout + 50*time.Millisecond)
 	t.Log("Circuit Breaker Half-Open")
 
-	res, err = Do[map[string]string](context.Background(), client, failReq)
+	res, err = req.Get(client.GetPath("fail"))
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
 	assert.NotNil(t, res)
 	t.Log("Circuit Breaker Open")
 
-	res, err = Do[map[string]string](context.Background(), client, successReq)
+	res, err = req.Get(client.GetPath("success"))
 
 	assert.ErrorIs(t, err, resty.ErrCircuitBreakerOpen)
 	assert.Nil(t, res)
@@ -373,16 +394,16 @@ func TestClientCircuitBreaker(t *testing.T) {
 	time.Sleep(cbTimeout + 50*time.Millisecond)
 	t.Log("Circuit Breaker Half-Open Again")
 
-	res, err = Do[map[string]string](context.Background(), client, successReq)
+	res, err = req.Get(client.GetPath("success"))
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode())
 	assert.NotNil(t, res)
 	t.Log("Circuit Breaker Closed")
 
-	res, err = Do[map[string]string](context.Background(), client, successReq)
+	res, err = req.Get(client.GetPath("success"))
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode())
 	assert.NotNil(t, res)
 }
