@@ -3,9 +3,11 @@ package httpz
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 
+	"github.com/goccy/go-json"
 	"go.opentelemetry.io/otel"
 	"resty.dev/v3"
 )
@@ -47,16 +49,10 @@ func NewClient(clientName, baseURL string, opts ...option) *Client {
 	restyClient.
 		SetBaseURL(baseURL).
 		SetCircuitBreaker(cfg.circuitBreaker).
-		// TODO: investigate performance issue with AddContentTypeEncoder/AddContentTypeDecoder
-		// compared to SetJSONMarshaler/SetJSONUnmarshaler
-		// AddContentTypeEncoder("application/json", func(w io.Writer, v any) error {
-		// 	return json.NewEncoder(w).Encode(v)
-		// }).
-		// AddContentTypeDecoder("application/json", func(r io.Reader, v any) error {
-		// 	return json.NewDecoder(r).Decode(v)
-		// }).
+		AddContentTypeDecoder("application/json", func(r io.Reader, v any) error {
+			return json.NewDecoder(r).Decode(v)
+		}).
 		SetHeaders(cfg.baseHeaders).
-		SetResponseBodyUnlimitedReads(true). // TODO: handle large body
 		SetLogger(logger{cfg.logger}).
 		AddRequestMiddleware(startTrace(&cfg)).
 		AddRequestMiddleware(logRequest(&cfg)).
