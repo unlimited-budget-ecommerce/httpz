@@ -1,7 +1,6 @@
 package httpz
 
 import (
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -23,14 +22,11 @@ func startTrace(cfg *config) resty.RequestMiddleware {
 
 		ctx := req.Context()
 		parentSpanCtx := trace.SpanFromContext(ctx).SpanContext()
-		if !parentSpanCtx.IsValid() {
-			return nil
-		}
 
 		tracer := cfg.tracer.Tracer("httpz-tracer-middleware")
 		ctx, span := tracer.Start(
 			ctx,
-			fmt.Sprintf("[HTTPZ][OUTGOING REQUEST] %s %s", req.Method, req.URL),
+			"HTTP "+req.Method,
 			trace.WithSpanKind(trace.SpanKindClient),
 			trace.WithAttributes(
 				semconv.URLFull(req.URL),
@@ -39,11 +35,13 @@ func startTrace(cfg *config) resty.RequestMiddleware {
 			trace.WithTimestamp(time.Now()),
 		)
 
-		ctx = logz.SetContextAttrs(
-			ctx,
+		attrs := []slog.Attr{
 			slog.String(logz.SpanKey, span.SpanContext().SpanID().String()),
-			slog.String(logz.ParentSpanKey, parentSpanCtx.SpanID().String()),
-		)
+		}
+		if parentSpanCtx.IsValid() {
+			attrs = append(attrs, slog.String(logz.ParentSpanKey, parentSpanCtx.SpanID().String()))
+		}
+		ctx = logz.SetContextAttrs(ctx, attrs...)
 
 		cfg.propagator.Inject(ctx, propagation.HeaderCarrier(req.Header))
 		req.SetContext(ctx)
